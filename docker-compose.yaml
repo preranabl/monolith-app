@@ -1,0 +1,21 @@
+services:
+  app:
+    image: preranabl/monolith-app:0.1.0
+    container_name: monolith-app
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    container_name: monolith-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

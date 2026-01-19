@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: preranabl/demo-fe:1.1.0
+    container_name: node-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:5001/api
+    stdin_open: true
+    tty: true
+
+  backend:
+    image: preranabl/demo-be:1.0.0
+    container_name: node-backend
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://admin:admin123@database:27017/tier-demo?authSource=admin
+    depends_on:
+      - database
+    networks:
+      - app-network
+
+  database:
+    image: preranabl/demo-db:0.2.0
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  mongo-data:
