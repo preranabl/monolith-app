@@ -10,7 +10,7 @@ services:
       - mongo
 
   mongo:
-    image: mongo:7
+    image: preranabl/demo-db:v1
     container_name: monolith-mongo
     ports:
       - "27017:27017"

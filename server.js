@@ -19,11 +19,11 @@ app.use(express.static(path.join(__dirname, "views")));
 app.use("/auth", authRoutes);
 app.use("/payment", paymentRoutes);
 
-// MongoDB connection (UPDATED ✅)
+// MongoDB connection 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
