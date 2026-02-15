@@ -301,7 +301,7 @@ docker-compose up --build
 
 ---
 
-## 📘 Understanding the Code
+## Understanding the Code
 
 ### How Everything Connects
 
