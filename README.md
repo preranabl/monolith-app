@@ -1,206 +1,394 @@
-# 3-Tier Demo Application (Frontend · Backend · Database)
+# Monolith Application - The Starting Point
 
-This repository represents the **system-level orchestration** of a 3-tier web application using **Docker Compose**.
+## Overview
 
-> **Important**: This repository does **not** contain application source code directly. Each tier (frontend, backend, database) lives in its **own independent GitHub repository** and is linked here conceptually and operationally via Docker images.
+This is a **monolithic web application** where all components authentication, payment processing, frontend views, and business logic—are tightly coupled within a **single codebase** and **single deployment unit**.
 
----
+**Application URL**: `http://localhost:4000`
 
-## Architecture Overview
-
-This project follows a **classic 3-tier architecture**:
-
-1. **Frontend (Presentation Layer)**
-
-   * React application
-   * Handles UI and user interactions
-   * Communicates with the backend via HTTP APIs
-
-2. **Backend (Application Layer)**
-
-   * Node.js + Express server
-   * Exposes REST APIs
-   * Handles business logic
-   * Communicates with MongoDB
-
-3. **Database (Data Layer)**
-
-   * MongoDB
-   * Stores persistent application data
-
-All three tiers run in **separate Docker containers** and communicate over a **shared Docker network**.
+This repository serves as:
+- An educational example of monolithic architecture
+- The starting point for learning microservices migration
+- A comparison baseline for understanding architectural evolution
+- A demonstration of scalability challenges in monoliths
 
 ---
 
-##  Related Repositories (Source Code)
+## What is a Monolithic Architecture?
 
-Each tier is developed, versioned, and maintained independently:
+A **monolithic architecture** is a traditional software design where all application components are interconnected and interdependent in a single unified codebase.
 
-* **Frontend**: [https://github.com/preranabl/Demo-frontend](https://github.com/preranabl/Demo-frontend)
-* **Backend**: [https://github.com/preranabl/Demo-backend](https://github.com/preranabl/Demo-backend)
-* **Database**: [https://github.com/preranabl/Demo-database](https://github.com/preranabl/Demo-database)
+### Characteristics of This Monolith:
 
-This repository only orchestrates these services using Docker Compose.
+| Characteristic | Description |
+|---------------|-------------|
+| **Single Codebase** | All features in one repository |
+| **Single Process** | Runs as one application |
+| **Shared Database** | All modules access the same MongoDB |
+| **Tight Coupling** | Components directly call each other |
+| **Unified Deployment** | Deploy everything together |
+| **Single Port** | Entire app runs on port 4000 |
 
----
-
-## Docker-Based Deployment Model
-
-Instead of cloning all repositories locally, this setup uses **Docker Hub images**:
-
-* `preranabl/demo-fe`
-* `preranabl/demo-be`
-* `preranabl/demo-db`
-
-Docker Compose pulls these images and runs them together as one system.
-
----
-
-## Request Flow (End-to-End)
-
-1. User opens the **frontend** in the browser
-2. Frontend sends an HTTP request to the **backend API**
-3. Backend processes the request
-4. Backend queries or updates **MongoDB**
-5. Database returns data to backend
-6. Backend sends response back to frontend
-7. Frontend updates the UI
+### Visual Architecture:
 
 ```
-Browser → Frontend → Backend → MongoDB
-                      ←
+                    ┌─────────────────────────────────┐
+                    │         BROWSER                 │
+                    │     http://localhost:4000       │
+                    └────────────┬────────────────────┘
+                                 │
+                                 │ HTTP Request
+                                 │
+        ┌────────────────────────▼─────────────────────────┐
+        │                                                  │
+        │           MONOLITH APPLICATION                   │
+        │              (Single Process)                    │
+        │                                                  │
+        │   ┌──────────────────────────────────────────┐  │
+        │   │         server.js (Port 4000)            │  │
+        │   │      Express Application Server          │  │
+        │   └──────────────┬───────────────────────────┘  │
+        │                  │                               │
+        │   ┌──────────────┼───────────────────────────┐  │
+        │   │     Routing Layer (routes/)              │  │
+        │   │   ┌────────────┐    ┌─────────────────┐ │  │
+        │   │   │authRoutes  │    │paymentRoutes    │ │  │
+        │   │   │   .js      │    │    .js          │ │  │
+        │   │   └─────┬──────┘    └────┬────────────┘ │  │
+        │   └─────────┼──────────────┼──────────────┘  │  │
+        │             │              │                   │
+        │   ┌─────────▼──────────────▼──────────────┐   │
+        │   │      Models Layer (models/)           │   │
+        │   │       ┌──────────────┐                │   │
+        │   │       │   User.js    │                │   │
+        │   │       │  (Mongoose)  │                │   │
+        │   │       └──────┬───────┘                │   │
+        │   └──────────────┼────────────────────────┘   │
+        │                  │                             │
+        │   ┌──────────────▼─────────────────────────┐  │
+        │   │      Views Layer (views/)              │  │
+        │   │   ┌──────────┐    ┌──────────────┐    │  │
+        │   │   │index.html│    │payment.html  │    │  │
+        │   │   └──────────┘    └──────────────┘    │  │
+        │   │          style.css                     │  │
+        │   └────────────────────────────────────────┘  │
+        │                                                │
+        └────────────────────┬───────────────────────────┘
+                             │
+                      ┌──────▼─────────┐
+                      │    MongoDB     │
+                      │  (Single DB)   │
+                      │  Port: 27017   │
+                      └────────────────┘
 ```
 
----
-
-##  docker-compose.yml Responsibilities
-
-The `docker-compose.yml` file:
-
-* Starts all 3 services
-* Creates a shared Docker network
-* Defines service-to-service communication
-* Injects environment variables
-* Manages database persistence using volumes
-
-This file is the **single entry point** to run the entire system.
+**Key Point**: Everything runs in ONE process. If any component fails or needs scaling, the ENTIRE application is affected.
 
 ---
 
-##  How to Run the Application
+##  Application Architecture
+
+### Request Flow:
+
+```
+1. User opens browser → http://localhost:4000
+                         ↓
+2. Express server (server.js) receives request
+                         ↓
+3. Router determines which route to call
+                         ↓
+4. Auth Route → /login, /register
+   Payment Route → /payment
+                         ↓
+5. Route calls Model (User.js) to interact with database
+                         ↓
+6. MongoDB performs query/update
+                         
+
+**All of this happens in ONE application running on port 4000.**
+
+---
+
+## Project Structure Explained
+
+Here's the complete file structure of this monolithic application:
+
+```
+MONOLITH-APP/
+│
+├── models/                      # Database Models (Mongoose Schemas)
+│   └── User.js                  # User model for authentication
+│                                   # - Defines user schema (email, password, etc.)
+│                                   # - Handles password hashing
+│                                   # - User validation logic
+│
+├──  routes/                      # Express Route Handlers
+│   ├── authRoutes.js            # Authentication routes
+│   │                               # - POST /login
+│   │                               # - POST /register
+│   │                               # - POST /logout
+│   │                               # - All auth logic in one file
+│   │
+│   └── paymentRoutes.js         # Payment processing routes
+│                                   # - POST /payment                                 
+│                                   # - All payment logic in one file
+│
+├── views/                       # Frontend HTML Views
+│   ├── index.html               # Homepage/Landing page
+│   │                               # - Main entry point for users
+│   │                               # - Login form
+│   │                               # - Navigation
+│   │
+│   ├── payment.html             # Payment page
+│   │                               # - Payment form
+│   │                               # - Credit card input
+│   │                               # - Payment confirmation
+│   │
+│   └── style.css                # Stylesheet for all pages
+│                                   # - Global styles
+│                                   # - Layout and design
+│                                   # - Responsive design rules
+│
+├──  node_modules/                # NPM Dependencies (not in git)
+│                                   # - Express, Mongoose, etc.
+│                                   # - Auto-generated by npm install
+│
+├──  .env                         # Environment Variables
+│                                   # - PORT=4000
+│                                   # - MONGODB_URI=mongodb://...
+│
+├── docker-compose.yaml          # Docker Compose Configuration
+│                                   # - Defines app service (port 4000)
+│                                   # - Defines MongoDB service
+│                                   # - Network configuration
+│                                   # - Volume mappings
+│
+├── Dockerfile                   # Docker Image Configuration
+│                                   # - Base image: node:16
+│                                   # - Install dependencies
+│                                   # - Copy application code
+│                                   # - EXPOSE 4000
+│                                   # - CMD to start server
+│
+├── package-lock.json            # Locked dependency versions
+│                                   # - Auto-generated by npm
+│                                   # - Ensures consistent installs
+│
+├── package.json                 # Node.js Project Configuration
+│                                   # - Dependencies (express, mongoose, etc.)
+│                                   # - Scripts (start, dev, test)
+│                                   # - Project metadata
+│
+│
+└── server.js                    # Main Application Entry Point
+                                    # - Creates Express app
+                                    # - Connects to MongoDB
+                                    # - Registers all routes
+                                    # - Serves static files (views/)
+                                    # - Starts server on port 4000
+                                    # - This is where everything begins!
+```
+
+### 🔍 Detailed Breakdown
+
+#### 1. **server.js** - The Heart of the Monolith
+
+***What it does:***
+- Initializes the Express application
+- Connects to single MongoDB database
+- Registers ALL routes (auth + payment)
+- Serves ALL views (HTML files)
+- Starts server on port 4000
+- Everything runs in this ONE process
+
+---
+
+#### 2. **models/User.js** - Database Schema
+
+***Why it's here:***
+- User model used by BOTH auth and payment routes
+- Shared across the entire monolith
+- Tight coupling with MongoDB
+
+---
+
+#### 3. **routes/authRoutes.js** - Authentication Logic
+
+**Endpoints:**
+- `POST http://localhost:4000/auth/login` - Login user
+
+
+---
+
+#### 4. **routes/paymentRoutes.js** - Payment Logic
+
+**Endpoints:**
+- `POST http://localhost:4000/payment/process` - Process payment
+
+---
+
+## Features
+
+This monolith application provides:
+
+**User Authentication**
+- User login
+- Login functionality
+
+**Payment Processing**
+- Payment 
+- Transaction processing
+
+ **Frontend Interface**
+- Responsive HTML pages
+- User-friendly forms
+- CSS styling
+- Static asset serving
+
+**Database Integration**
+- MongoDB for data persistence
+- Mongoose ODM for schema management
+- Single database for all data
+
+- **Containerization**
+- Docker support
+- Docker Compose orchestration
+- Easy deployment
+
+---
+
+### Installation Steps
+
+#### Method 1: Using Docker 
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/preranabl/monolith-app.git
+   cd monolith-app
+   ```
+
+2. **Start with Docker Compose**
+   ```bash
+   docker-compose up 
+   ```
+
+3. **Access the application**
+   ```
+   http://localhost:4000
+   ```
+
+That's it! Docker handles everything.
+
+---
+
+
+##  Running the Application
+
+### Start the Monolith
 
 ```bash
+# Using Docker Compose (Recommended)
 docker-compose up
+
+# Or in detached mode
+docker-compose up -d
 ```
 
-### Access Points
-
-* Frontend: [http://localhost:3001](http://localhost:3001)
-* Backend API: [http://localhost:3000](http://localhost:3000)
-* MongoDB: mongodb://localhost:27017
-
----
-
-## Why This Design?
-
-✔ Clear separation of concerns <br>
-✔ Independent development & deployment <br>
-✔ Scales well in real-world systems <br>
-✔ Matches industry microservice practices <br>
-✔ Easy migration to Kubernetes / Cloud <br>
-
----
-
-##  Notes for Reviewers 
-
-* Each tier has its own Git repository and Docker image
-* This repository is an **infrastructure orchestration layer**
-* No code duplication or tight coupling between services
-
----
-
-## How to Verify Data Inside the Database Container
-
-Since MongoDB runs inside a Docker container, you need to **enter the container** to inspect stored data.
-
-### 1️List running containers
+### View Logs
 
 ```bash
-docker ps
+# All logs
+docker-compose logs -f
+
+# Just app logs
+docker-compose logs -f monolith-app
 ```
 
-Look for the MongoDB container name (e.g. `mongo-db`).
-
----
-
-### 2️ Open a shell inside the MongoDB container
-
-```bash
-docker exec -it mongo-db mongosh -u admin -p admin123 --authenticationDatabase admin
-```
-
-This opens the MongoDB shell **inside the container**.
-
----
-
-### 3️Switch to the application database
-
-```js
-use tier-demo
-```
-
----
-
-### 4️ View collections
-
-```js
-show collections
-```
-
-Expected output:
-
-```
-users
-```
-
----
-
-### 5️ View stored data
-
-```js
-db.users.find().pretty()
-```
-
-This confirms that:
-
-* Backend requests are reaching MongoDB
-* Data is being persisted correctly
-* Database volume is working as expected
-
----
-
-### 6️ (Optional) Verify persistence
-
-1. Stop containers:
+### Stop the Application
 
 ```bash
 docker-compose down
 ```
 
-2. Start again:
+### Stop and Remove Data
 
 ```bash
-docker-compose up
+docker-compose down -v
 ```
 
-3. Re-check data using steps above
+### Rebuild After Code Changes
 
-If data still exists, **Docker volumes are working correctly**.
+```bash
+docker-compose up --build
+```
 
 ---
+
+## 📘 Understanding the Code
+
+### How Everything Connects
+
+```
+1. User visits http://localhost:4000
+              ↓
+2. Express (server.js) serves index.html from views/
+              ↓
+3. User clicks "Login" button
+              ↓
+4. Browser sends POST to http://localhost:4000/auth/login
+              ↓
+5. Express routes request to authRoutes.js
+              ↓
+6. authRoutes.js calls User model (models/User.js)
+              ↓
+7. Mongoose queries/updates MongoDB
+              ↓
+11. User redirected to payment.html
+```
+
+### Key Code Flows
+
+**User Registration:**
+```
+Browser → POST /auth/register → authRoutes.js → User.create() → MongoDB 
+```
+
+**Payment Processing:**
+```
+Browser → POST /payment → paymentRoutes.js → Payment Gateway → Save to MongoDB 
+```
+
+**Serving Pages:**
+```
+Browser → GET / → Express static middleware → views/index.html → Browser
+```
+
+---
+
+##  Learning Objectives
+
+By exploring this repository, you will understand:
+
+- How monolithic applications are structured  
+- How all components are tightly coupled  
+
+---
+
+## Next Steps
+
+### Hands-On Learning Path
+
+1. **You Are Here**: Understand the monolith structure
+2. **Next**: Visit [breakdown-mono-multi](https://github.com/preranabl/breakdown-mono-multi)
+3. **Compare**: Notice the differences
+---
+
 
 ## 👤 Author
 
 **Prerana Blown Lama**
 
-3-Tier Application · Docker · Node.js · React · MongoDB
+- GitHub: [@preranabl](https://github.com/preranabl)
+- Monolith Repository: [monolith-app](https://github.com/preranabl/monolith-app)
+- Microservices Repository: [breakdown-mono-multi](https://github.com/preranabl/breakdown-mono-multi)
+---
