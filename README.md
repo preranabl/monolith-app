@@ -86,29 +86,6 @@ A **monolithic architecture** is a traditional software design where all applica
 
 ---
 
-##  Application Architecture
-
-### Request Flow:
-
-```
-1. User opens browser → http://localhost:4000
-                         ↓
-2. Express server (server.js) receives request
-                         ↓
-3. Router determines which route to call
-                         ↓
-4. Auth Route → /login, /register
-   Payment Route → /payment
-                         ↓
-5. Route calls Model (User.js) to interact with database
-                         ↓
-6. MongoDB performs query/update
-                         
-
-**All of this happens in ONE application running on port 4000.**
-
----
-
 ## Project Structure Explained
 
 Here's the complete file structure of this monolithic application:
